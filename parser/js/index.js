@@ -6,6 +6,14 @@ const OPERATION = {
   SUB: (a, b) => a - b
 };
 
+const OPERATOR_VALUE = {
+  [OPERATION.EXP]: 4,
+  [OPERATION.MUL]: 3,
+  [OPERATION.DIV]: 2,
+  [OPERATION.ADD]: 1,
+  [OPERATION.SUB]: 0
+};
+
 const operatorToOperation = {
   '+': OPERATION.ADD,
   '/': OPERATION.DIV,
@@ -24,8 +32,12 @@ const RE = {
 };
 
 const UTIL = {
+  compareOperators: (a, b) => OPERATOR_VALUE[a] >= OPERATOR_VALUE[b] ? 1 : -1,
   compose: (...fns) => fns.reduce((leftFn, rightFn) => (...args) => leftFn(rightFn(...args))),
   curry: (fn, ...vals) => (...rest) => fn(...vals, ...rest),
+  isNumber: o => o === parseFloat(o),
+  isOperator: o => o in OPERATOR_VALUE,
+  isTree: x => typeof x === 'object',
   makeTree: (left, value, right) => ({value, left, right}),
   removeWhitespace: x => x.split(RE.spaces).join(''),
   split: expression => expression.match(RE.split),
@@ -33,13 +45,36 @@ const UTIL = {
 };
 
 function arrToAST (expression) {
-  const left = expression.shift();
-  const operation = expression.shift();
-  const right = expression.shift();
-  const tree = UTIL.makeTree(left, operation, right);
+  if (!expression || expression.length === 0) throw Error('Bad expression: ' + expression);
+  let left, operator, right, next, comparison, tree;
+  next = expression.shift();
+  if (expression.length === 0) return next;
+
+  left = next;
+  next = expression.shift();
+
+  if (UTIL.isOperator(next)) {
+    operator = next;
+    if (UTIL.isTree(left)) {
+      comparison = UTIL.compareOperators(left.value, operator);
+      if (comparison === -1) {
+        const newLeft = left.right;
+        expression = [newLeft, operator, ...expression];
+        left.right = arrToAST(expression);
+        return arrToAST([left, ...expression]);
+      } else { /* continue */ }
+    } else { /* continue */ }
+  }
+
+  if (right === undefined) {
+    next = expression.shift();
+    if (UTIL.isNumber(next)) right = next;
+  }
+
+  tree = UTIL.makeTree(left, operator, right);
 
   if (expression.length === 0) return tree;
-  else return arrToAST([tree, ...expression]);
+  return arrToAST([tree, ...expression]);
 }
 
 const parse = UTIL.compose(

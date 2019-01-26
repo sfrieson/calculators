@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { OPERATION, UTIL, parse } = require('./');
+const { OPERATION, UTIL, arrToAST, parse } = require('./');
 
 function test (name, tests) {
   try {
@@ -47,26 +47,26 @@ test('Util', function () {
 });
 
 test('arrToAST', function () {
-  let tree = arrToAST(['1', '+', '2']);
-  assert(tree.left === '1', 'arrToAST, 1 + 2, left');
-  assert(tree.value === '+', 'arrToAST, 1 + 2, value');
-  assert(tree.right === '2', 'arrToAST, 1 + 2, right');
+  let tree = arrToAST([1, OPERATION.ADD, 2]);
+  assert(tree.left === 1, 'arrToAST, 1 + 2, left');
+  assert(tree.value === OPERATION.ADD, 'arrToAST, 1 + 2, value');
+  assert(tree.right === 2, 'arrToAST, 1 + 2, right');
 
-  tree = arrToAST(['1', '+', '2', '+', '3']);
+  tree = arrToAST([1, OPERATION.ADD, 2, OPERATION.ADD, 3]);
   assert(typeof tree.left === 'object', 'arrToAST, 1 + 2 + 3, left');
-  assert(tree.value === '+', 'arrToAST, 1 + 2 + 3, value');
-  assert(tree.right === '3', 'arrToAST, 1 + 2 + 3, right');
+  assert(tree.value === OPERATION.ADD, 'arrToAST, 1 + 2 + 3, value');
+  assert(tree.right === 3, 'arrToAST, 1 + 2 + 3, right');
   let left = tree.left;
-  assert(left.left === '1', 'arrToAST, 1 + 2 + 3, left.left');
-  assert(left.value === '+', 'arrToAST, 1 + 2 + 3, left.value');
-  assert(left.right === '2', 'arrToAST, 1 + 2 + 3, left.right');
+  assert(left.left === 1, 'arrToAST, 1 + 2 + 3, left.left');
+  assert(left.value === OPERATION.ADD, 'arrToAST, 1 + 2 + 3, left.value');
+  assert(left.right === 2, 'arrToAST, 1 + 2 + 3, left.right');
 
-  tree = arrToAST(['1', '+', '2', '*', '3']);
-  assert(tree.left === '1', 'arrToAST, 1 + 2 * 3, left');
-  assert(tree.value === '+', 'arrToAST, 1 + 2 * 3, value');
+  tree = arrToAST([1, OPERATION.ADD, 2, OPERATION.MUL, 3]);
+  assert(tree.left === 1, 'arrToAST, 1 + 2 * 3, left');
+  assert(tree.value === OPERATION.ADD, 'arrToAST, 1 + 2 * 3, value');
   assert(typeof tree.right === 'object', 'arrToAST, 1 + 2 * 3, right');
   let right = tree.right;
-  assert(right.left === '2', 'arrToAST, 1 + 2 * 3, right.left');
-  assert(right.value === '*', 'arrToAST, 1 + 2 * 3, right.value');
-  assert(right.right === '3', 'arrToAST, 1 + 2 * 3, right.right');
-})
+  assert(right.left === 2, 'arrToAST, 1 + 2 * 3, right.left');
+  assert(right.value === OPERATION.MUL, 'arrToAST, 1 + 2 * 3, right.value');
+  assert(right.right === 3, 'arrToAST, 1 + 2 * 3, right.right');
+});
