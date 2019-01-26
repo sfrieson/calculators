@@ -3,6 +3,7 @@ const OPERATION = {
   DIV: (a, b) => a / b,
   EXP: (a, b) => Math.pow(a, b),
   MUL: (a, b) => a * b,
+  PAR: a => a(),
   SUB: (a, b) => a - b
 };
 
@@ -12,6 +13,15 @@ const OPERATOR_VALUE = {
   [OPERATION.DIV]: 2,
   [OPERATION.ADD]: 1,
   [OPERATION.SUB]: 0
+};
+
+const OPERATOR_ASSOCIATION = {
+  [OPERATION.EXP]: 'right',
+  [OPERATION.EXP]: 'left',
+  [OPERATION.MUL]: 'left',
+  [OPERATION.DIV]: 'left',
+  [OPERATION.ADD]: 'left',
+  [OPERATION.SUB]: 'left'
 };
 
 const operatorToOperation = {
@@ -31,54 +41,94 @@ const RE = {
   split: /(?:[+\-*/^()])|(?:\d+)/g
 };
 
+class List {
+  constructor (arr) {
+    this.data = arr || [];
+  }
+
+  isEmpty () {
+    return this.data.length <= 0;
+  }
+
+  toArray () {
+    return this.data;
+  }
+}
+
+class Queue extends List {
+  pop () {
+    return this.data.pop();
+  }
+  add (val) {
+    this.data.unshift(val);
+  }
+}
+
+class Stack extends List {
+  pop () {
+    return this.data.pop();
+  }
+  push (val) {
+    this.data.push(val);
+  }
+  peek () {
+    return this.data.slice(-1)[0];
+  }
+}
+
 const UTIL = {
-  compareOperators: (a, b) => OPERATOR_VALUE[a] >= OPERATOR_VALUE[b] ? 1 : -1,
+  compareOperators: (a, b) => OPERATOR_VALUE[a] > OPERATOR_VALUE[b] ? 1 : OPERATOR_VALUE[a] < OPERATOR_VALUE[b] ? -1 : 0,
   compose: (...fns) => fns.reduce((leftFn, rightFn) => (...args) => leftFn(rightFn(...args))),
-  curry: (fn, ...vals) => (...rest) => fn(...vals, ...rest),
-  isNumber: o => o === parseFloat(o),
+  getOperatorAssociation: a => OPERATOR_ASSOCIATION[a],
+  isNumber: o => typeof o === 'number',
   isOperator: o => o in OPERATOR_VALUE,
-  isTree: x => typeof x === 'object',
-  makeTree: (left, value, right) => ({value, left, right}),
   removeWhitespace: x => x.split(RE.spaces).join(''),
   split: expression => expression.match(RE.split),
   stringToValue: str => operatorToOperation[str] || parseFloat(str)
 };
 
-function arrToAST (expression) {
-  if (!expression || expression.length === 0) throw Error('Bad expression: ' + expression);
-  let left, operator, right, next, comparison, tree;
-  next = expression.shift();
-  if (expression.length === 0) return next;
+function shuntingYard (expression) {
+  // without functions
+  expression = new Queue(expression.reverse());
+  const output = new Queue();
+  const operatorStack = new Stack();
 
-  left = next;
-  next = expression.shift();
+  while (!expression.isEmpty()) {
+    let token = expression.pop();
+    if (UTIL.isNumber(token)) {
+      output.add(token);
+    }
+    if (UTIL.isOperator(token)) {
+      while (
+        !operatorStack.isEmpty() &&
+        (
+          UTIL.compareOperators(operatorStack.peek(), token) === 1 ||
+          (
+            UTIL.compareOperators(operatorStack.peek(), token) === 0 &&
+            UTIL.getOperatorAssociation(operatorStack.peek() === 'left')
+          )
+        ) &&
+        operatorStack.peek() !== '('
+      ) output.add(operatorStack.pop());
 
-  if (UTIL.isOperator(next)) {
-    operator = next;
-    if (UTIL.isTree(left)) {
-      comparison = UTIL.compareOperators(left.value, operator);
-      if (comparison === -1) {
-        const newLeft = left.right;
-        expression = [newLeft, operator, ...expression];
-        left.right = arrToAST(expression);
-        return arrToAST([left, ...expression]);
-      } else { /* continue */ }
-    } else { /* continue */ }
+      operatorStack.push(token);
+    }
+    if (token === '(') operatorStack.push(token);
+    if (token === ')') {
+      while (operatorStack.peek() !== '(') output.add(operatorStack.pop());
+      operatorStack.pop();
+    }
+    if (expression.isEmpty()) {
+      while (!operatorStack.isEmpty()) output.add(operatorStack.pop());
+    }
   }
 
-  if (right === undefined) {
-    next = expression.shift();
-    if (UTIL.isNumber(next)) right = next;
-  }
-
-  tree = UTIL.makeTree(left, operator, right);
-
-  if (expression.length === 0) return tree;
-  return arrToAST([tree, ...expression]);
+  return output.toArray().reverse();
 }
 
 const parse = UTIL.compose(
-  arrToAST,
+  // evaluateRPN,
+  shuntingYard,
   vals => vals.map(UTIL.stringToValue),
   UTIL.split,
   UTIL.removeWhitespace
@@ -88,5 +138,5 @@ module.exports = {
   OPERATION,
   UTIL,
   parse,
-  arrToAST
+  shuntingYard
 };

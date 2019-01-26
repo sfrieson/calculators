@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { OPERATION, UTIL, arrToAST, parse } = require('./');
+const { OPERATION, UTIL, shuntingYard, parse } = require('./');
 
 function test (name, tests) {
   try {
@@ -28,45 +28,24 @@ test('Util', function () {
     ))('R') === 'R2-D2',
     'compose'
   );
-  assert(
-    (UTIL.curry(
-      (a, b, c) => a + b + c,
-      2, 2
-    ))(2) === 6,
-    'curry'
-  );
+      
   assert(UTIL.removeWhitespace(' a bc  d e f  ') === 'abcdef', 'removeWhitespace');
   assert(UTIL.split('23*52+(8*(5-3))').join() === '23,*,52,+,(,8,*,(,5,-,3,),)', 'split');
   assert(UTIL.stringToValue('23') === 23, 'stringToValue(`23`)');
   assert(UTIL.stringToValue('+') === OPERATION.ADD, 'stringToValue(`+`)');
-
-  let tree = UTIL.makeTree('1', '+', '2');
-  assert(tree.left === '1', 'makeTree, left');
-  assert(tree.value === '+', 'makeTree, value');
-  assert(tree.right === '2', 'makeTree, right');
 });
 
-test('arrToAST', function () {
-  let tree = arrToAST([1, OPERATION.ADD, 2]);
-  assert(tree.left === 1, 'arrToAST, 1 + 2, left');
-  assert(tree.value === OPERATION.ADD, 'arrToAST, 1 + 2, value');
-  assert(tree.right === 2, 'arrToAST, 1 + 2, right');
+test('shuntingYard', function () {
+  // 3 + 4 × 2 ÷ ( 1 − 5 ) ^ 2 ^ 3
+  const result = shuntingYard([
+    3, OPERATION.ADD, 4, OPERATION.MUL, 2, OPERATION.DIV, '(', 1, OPERATION.SUB, 5, ')', OPERATION.EXP, 2, OPERATION.EXP, 3
+  ]);
+  // 3 4 2 × 1 5 − 2 3 ^ ^ ÷ +
+  const expected = [
+    3, 4, 2, OPERATION.MUL, 1, 5, OPERATION.SUB, 2, 3, OPERATION.EXP, OPERATION.EXP, OPERATION.DIV, OPERATION.ADD
+  ];
 
-  tree = arrToAST([1, OPERATION.ADD, 2, OPERATION.ADD, 3]);
-  assert(typeof tree.left === 'object', 'arrToAST, 1 + 2 + 3, left');
-  assert(tree.value === OPERATION.ADD, 'arrToAST, 1 + 2 + 3, value');
-  assert(tree.right === 3, 'arrToAST, 1 + 2 + 3, right');
-  let left = tree.left;
-  assert(left.left === 1, 'arrToAST, 1 + 2 + 3, left.left');
-  assert(left.value === OPERATION.ADD, 'arrToAST, 1 + 2 + 3, left.value');
-  assert(left.right === 2, 'arrToAST, 1 + 2 + 3, left.right');
-
-  tree = arrToAST([1, OPERATION.ADD, 2, OPERATION.MUL, 3]);
-  assert(tree.left === 1, 'arrToAST, 1 + 2 * 3, left');
-  assert(tree.value === OPERATION.ADD, 'arrToAST, 1 + 2 * 3, value');
-  assert(typeof tree.right === 'object', 'arrToAST, 1 + 2 * 3, right');
-  let right = tree.right;
-  assert(right.left === 2, 'arrToAST, 1 + 2 * 3, right.left');
-  assert(right.value === OPERATION.MUL, 'arrToAST, 1 + 2 * 3, right.value');
-  assert(right.right === 3, 'arrToAST, 1 + 2 * 3, right.right');
+  for (var i = 0; i < expected.length; i++) {
+    assert(result[i] === expected[i], 'oops');  
+  }
 });
