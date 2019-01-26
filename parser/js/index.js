@@ -123,11 +123,25 @@ function shuntingYard (expression) {
     }
   }
 
-  return output.toArray().reverse();
+  return output;
 }
 
-const parse = UTIL.compose(
-  // evaluateRPN,
+function evaluateRPN (expressionQueue) {
+  var stack = new Stack();
+  while (!expressionQueue.isEmpty()) {
+    var token = expressionQueue.pop();
+    if (UTIL.isOperator(token)) {
+      const operand2 = stack.pop();
+      const operand1 = stack.pop();
+      const result = token(operand1, operand2);
+      stack.push(result);
+    } else if (UTIL.isNumber(token)) stack.push(token);
+  }
+  return stack.pop();
+}
+
+const compute = UTIL.compose(
+  evaluateRPN,
   shuntingYard,
   vals => vals.map(UTIL.stringToValue),
   UTIL.split,
@@ -137,6 +151,7 @@ const parse = UTIL.compose(
 module.exports = {
   OPERATION,
   UTIL,
-  parse,
+  compute,
+  evaluateRPN,
   shuntingYard
 };

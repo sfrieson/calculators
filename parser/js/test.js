@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { OPERATION, UTIL, shuntingYard, parse } = require('./');
+const { OPERATION, UTIL, shuntingYard, evaluateRPN, compute } = require('./');
 
 function test (name, tests) {
   try {
@@ -28,7 +28,7 @@ test('Util', function () {
     ))('R') === 'R2-D2',
     'compose'
   );
-      
+  
   assert(UTIL.removeWhitespace(' a bc  d e f  ') === 'abcdef', 'removeWhitespace');
   assert(UTIL.split('23*52+(8*(5-3))').join() === '23,*,52,+,(,8,*,(,5,-,3,),)', 'split');
   assert(UTIL.stringToValue('23') === 23, 'stringToValue(`23`)');
@@ -39,7 +39,7 @@ test('shuntingYard', function () {
   // 3 + 4 × 2 ÷ ( 1 − 5 ) ^ 2 ^ 3
   const result = shuntingYard([
     3, OPERATION.ADD, 4, OPERATION.MUL, 2, OPERATION.DIV, '(', 1, OPERATION.SUB, 5, ')', OPERATION.EXP, 2, OPERATION.EXP, 3
-  ]);
+  ]).toArray().reverse();
   // 3 4 2 × 1 5 − 2 3 ^ ^ ÷ +
   const expected = [
     3, 4, 2, OPERATION.MUL, 1, 5, OPERATION.SUB, 2, 3, OPERATION.EXP, OPERATION.EXP, OPERATION.DIV, OPERATION.ADD
@@ -48,4 +48,18 @@ test('shuntingYard', function () {
   for (var i = 0; i < expected.length; i++) {
     assert(result[i] === expected[i], 'oops');  
   }
+});
+
+test('evaluateRPN', function () {
+  const result = evaluateRPN(
+    shuntingYard([
+      3, OPERATION.ADD, 4, OPERATION.MUL, 2, OPERATION.DIV, '(', 1, OPERATION.SUB, 5, ')', OPERATION.EXP, 2, OPERATION.EXP, 3
+    ])
+  );
+
+  assert(Math.round(result) === Math.round(3.001953125), 'depends on shuntingYard');
+});
+
+test('compute', function () {
+  assert(compute('((15 / (7 - (1 + 1))) * 3) - (2 + (1 + 1))') === 5, 'computation failure');
 });
