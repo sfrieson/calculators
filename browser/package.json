@@ -1,0 +1,33 @@
+{
+  "name": "calculator-browser",
+  "version": "1.0.0",
+  "description": "Practice with building a calculator in logic and view",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack-dev-server --config build/webpack.config.dev.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sfrieson/calculators.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "vue": "^2.5.22",
+    "vue-router": "^3.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.2.2",
+    "@babel/preset-env": "^7.3.1",
+    "babel-loader": "^8.0.5",
+    "css-loader": "^2.1.0",
+    "html-webpack-plugin": "^3.2.0",
+    "vue-loader": "^15.6.1",
+    "vue-style-loader": "^4.1.2",
+    "vue-template-compiler": "^2.5.22",
+    "webpack": "^4.29.0",
+    "webpack-cli": "^3.2.1",
+    "webpack-dev-server": "^3.1.14"
+  }
+}
