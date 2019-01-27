@@ -3,32 +3,38 @@ const OPERATION = {
   DIV: (a, b) => a / b,
   EXP: (a, b) => Math.pow(a, b),
   MUL: (a, b) => a * b,
-  PAR: a => a(),
   SUB: (a, b) => a - b
 };
 
 const OPERATOR_VALUE = {
+  [OPERATION.ADD]: 1,
+  [OPERATION.DIV]: 2,
   [OPERATION.EXP]: 4,
   [OPERATION.MUL]: 3,
-  [OPERATION.DIV]: 2,
-  [OPERATION.ADD]: 1,
   [OPERATION.SUB]: 0
 };
 
+const ASSOCIATION = {
+  LEFT: 'left',
+  RIGHT: 'right'
+};
+
 const OPERATOR_ASSOCIATION = {
-  [OPERATION.EXP]: 'right',
-  [OPERATION.EXP]: 'left',
-  [OPERATION.MUL]: 'left',
-  [OPERATION.DIV]: 'left',
-  [OPERATION.ADD]: 'left',
-  [OPERATION.SUB]: 'left'
+  [OPERATION.ADD]: ASSOCIATION.LEFT,
+  [OPERATION.DIV]: ASSOCIATION.LEFT,
+  [OPERATION.EXP]: ASSOCIATION.RIGHT,
+  [OPERATION.MUL]: ASSOCIATION.LEFT,
+  [OPERATION.SUB]: ASSOCIATION.LEFT
 };
 
 const operatorToOperation = {
   '+': OPERATION.ADD,
+  '÷': OPERATION.DIV,
   '/': OPERATION.DIV,
   '^': OPERATION.EXP,
+  '×': OPERATION.MUL,
   '*': OPERATION.MUL,
+  '−': OPERATION.SUB, // Different minus character
   '-': OPERATION.SUB,
   '(': '(',
   ')': ')'
@@ -36,9 +42,12 @@ const operatorToOperation = {
 
 const RE = {
   spaces: /\s+/g,
-  number: /\d+/,
-  operator: /[+\-*/]/,
-  split: /(?:[+\-*/^()])|(?:\d+)/g
+  operatorOrOperand: /(?:[+\-*/^()])|(?:\d+)/g
+};
+
+const BRACKET = {
+  LEFT: '(',
+  RIGHT: ')'
 };
 
 class List {
@@ -59,8 +68,14 @@ class Queue extends List {
   pop () {
     return this.data.pop();
   }
+
   add (val) {
     this.data.unshift(val);
+  }
+
+  * [Symbol.iterator] () {
+    while (!this.isEmpty()) yield this.pop();
+    return this;
   }
 }
 
@@ -68,11 +83,18 @@ class Stack extends List {
   pop () {
     return this.data.pop();
   }
+
   push (val) {
     this.data.push(val);
   }
+
   peek () {
     return this.data.slice(-1)[0];
+  }
+
+  * [Symbol.iterator] () {
+    while (!this.isEmpty()) yield this.pop();
+    return this;
   }
 }
 
@@ -83,7 +105,7 @@ const UTIL = {
   isNumber: o => typeof o === 'number',
   isOperator: o => o in OPERATOR_VALUE,
   removeWhitespace: x => x.split(RE.spaces).join(''),
-  split: expression => expression.match(RE.split),
+  split: expression => expression.match(RE.operatorOrOperand),
   stringToValue: str => operatorToOperation[str] || parseFloat(str)
 };
 
@@ -93,11 +115,8 @@ function shuntingYard (expression) {
   const output = new Queue();
   const operatorStack = new Stack();
 
-  while (!expression.isEmpty()) {
-    let token = expression.pop();
-    if (UTIL.isNumber(token)) {
-      output.add(token);
-    }
+  for (let token of expression) {
+    if (UTIL.isNumber(token)) output.add(token);
     if (UTIL.isOperator(token)) {
       while (
         !operatorStack.isEmpty() &&
@@ -105,21 +124,21 @@ function shuntingYard (expression) {
           UTIL.compareOperators(operatorStack.peek(), token) === 1 ||
           (
             UTIL.compareOperators(operatorStack.peek(), token) === 0 &&
-            UTIL.getOperatorAssociation(operatorStack.peek() === 'left')
+            UTIL.getOperatorAssociation(operatorStack.peek()) === ASSOCIATION.LEFT
           )
         ) &&
-        operatorStack.peek() !== '('
+        operatorStack.peek() !== BRACKET.LEFT
       ) output.add(operatorStack.pop());
 
       operatorStack.push(token);
     }
-    if (token === '(') operatorStack.push(token);
-    if (token === ')') {
-      while (operatorStack.peek() !== '(') output.add(operatorStack.pop());
+    if (token === BRACKET.LEFT) operatorStack.push(token);
+    if (token === BRACKET.RIGHT) {
+      while (operatorStack.peek() !== BRACKET.LEFT) output.add(operatorStack.pop());
       operatorStack.pop();
     }
     if (expression.isEmpty()) {
-      while (!operatorStack.isEmpty()) output.add(operatorStack.pop());
+      for (let pop of operatorStack) output.add(pop);
     }
   }
 
@@ -128,8 +147,7 @@ function shuntingYard (expression) {
 
 function evaluateRPN (expressionQueue) {
   var stack = new Stack();
-  while (!expressionQueue.isEmpty()) {
-    var token = expressionQueue.pop();
+  for (let token of expressionQueue) {
     if (UTIL.isOperator(token)) {
       const operand2 = stack.pop();
       const operand1 = stack.pop();

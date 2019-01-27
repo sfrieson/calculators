@@ -28,7 +28,15 @@ test('Util', function () {
     ))('R') === 'R2-D2',
     'compose'
   );
-  
+  assert(UTIL.compareOperators(OPERATION.ADD, OPERATION.ADD) === 0, 'compareOperators, + +');
+  assert(UTIL.compareOperators(OPERATION.MUL, OPERATION.ADD) === 1, 'compareOperators, * +');
+  assert(UTIL.compareOperators(OPERATION.ADD, OPERATION.MUL) === -1, 'compareOperators, + *');
+  assert(UTIL.isNumber(5) === true, 'isNumber, 5');
+  assert(UTIL.isNumber(1e3) === true, 'isNumber, 1e3');
+  assert(UTIL.isNumber('foo') === false, 'isNumber, `foo`');
+  assert(UTIL.isOperator(OPERATION.ADD) === true, 'isOperator, +');
+  assert(UTIL.isOperator('foo') === false, 'isOperator, `foo`');
+  assert(UTIL.getOperatorAssociation(OPERATION.ADD) === 'left', 'getOperatorAssociation, +');
   assert(UTIL.removeWhitespace(' a bc  d e f  ') === 'abcdef', 'removeWhitespace');
   assert(UTIL.split('23*52+(8*(5-3))').join() === '23,*,52,+,(,8,*,(,5,-,3,),)', 'split');
   assert(UTIL.stringToValue('23') === 23, 'stringToValue(`23`)');
@@ -46,7 +54,7 @@ test('shuntingYard', function () {
   ];
 
   for (var i = 0; i < expected.length; i++) {
-    assert(result[i] === expected[i], 'oops');  
+    assert(result[i] === expected[i], 'oops');
   }
 });
 
